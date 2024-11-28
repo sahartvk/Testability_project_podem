@@ -80,9 +80,6 @@ class CircuitSimulator:
 
 
     def true_value_simulation(self):
-
-        # TODO: read inputs
-
         for time in range(len(self.input_values)): 
             for idx, input_net in enumerate(self.inputs):
                 self.nets[input_net].value.append(self.input_values[time][idx])
@@ -92,10 +89,11 @@ class CircuitSimulator:
                 gate_output_value = self.calculate_gate_output(gate.type, gate_inputs_value)
                 self.nets[gate.output].value[time] = gate_output_value
 
-        # Print net values
-        # print("Simulation Result:")
-        # for net in self.nets:
-        #     print(f"Net {net.number}: {net.value}")
+        print("\nTrue Value Simulation:")
+        for net in self.nets:
+            if net:
+                print(f"Net {net.number}: {net.value}")
+
 
     #TODO: fix for x values
     @staticmethod
@@ -157,3 +155,18 @@ class CircuitSimulator:
         for net in self.nets:
             if net:
                 net.value += [net.value[-1]] * (max_time - len(net.value))
+
+        print("\nSimulation with Delay:")
+        for net in self.nets:
+            if net:
+                print(f"Net {net.number}: {net.value}")
+
+
+
+
+if __name__ == "__main__":
+    simulator = CircuitSimulator("c17.isc")
+    simulator.read_isc_file()
+    simulator.read_inputs("inputs.txt")
+    simulator.true_value_simulation()
+    simulator.simulation_with_delay()
