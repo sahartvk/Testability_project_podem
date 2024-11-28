@@ -61,9 +61,22 @@ class CircuitSimulator:
 
             i += 1
 
-    
-    def read_inputs(self):
-        pass
+
+    def read_inputs(self, file_path):
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+
+        input_order = list(map(int, lines[0].strip().split()))
+
+        self.input_values = []
+
+        input_indices = [input_order.index(input_net) for input_net in self.inputs]
+
+        for line in lines[1:]:
+            bits = line.strip()
+            time_step_values = [bits[idx] for idx in input_indices]
+            self.input_values.append(time_step_values)
+
 
 
     def true_value_simulation(self):
