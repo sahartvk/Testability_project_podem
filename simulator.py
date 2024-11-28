@@ -2,7 +2,7 @@ class Net:
     def __init__(self, number, name):
         self.number = number
         self.name = name
-        self.value = None
+        self.value = []
 
 
 class Gate:
@@ -14,8 +14,8 @@ class Gate:
 
 
 class CircuitSimulator:
-    def __init__(self):
-        file_name = ''
+    def __init__(self, file_name):
+        file_name = file_name
         gates = []
         inputs = []
         outputs = []
@@ -66,8 +66,24 @@ class CircuitSimulator:
 
 
     def true_value_simulation(self):
-        pass
 
+        # TODO: read inputs
+
+        for time in range(len(self.input_values)): 
+        # Assign input values to nets
+            for idx, input_net in enumerate(self.inputs):
+                self.nets[input_net].value.append(self.input_values[time][idx])
+
+            # Process gates
+            for gate in self.gates:
+                gate_inputs_value = [self.nets[net].value[time] for net in gate.inputs]
+                gate_output_value = self.calculate_gate_output(gate.type, gate_inputs_value)
+                self.nets[gate.output].value[time] = gate_output_value
+
+        # Print net values
+        # print("Simulation Result:")
+        # for net in self.nets:
+        #     print(f"Net {net.number}: {net.value}")
     
     def simulation_with_delay(self):
         pass
