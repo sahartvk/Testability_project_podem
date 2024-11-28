@@ -24,6 +24,7 @@ class CircuitSimulator:
 
 
     def read_isc_file(self):
+        # TODO: store delays
         with open(self.file_name, 'r') as f:
             lines = f.readlines()
 
@@ -70,11 +71,9 @@ class CircuitSimulator:
         # TODO: read inputs
 
         for time in range(len(self.input_values)): 
-        # Assign input values to nets
             for idx, input_net in enumerate(self.inputs):
                 self.nets[input_net].value.append(self.input_values[time][idx])
 
-            # Process gates
             for gate in self.gates:
                 gate_inputs_value = [self.nets[net].value[time] for net in gate.inputs]
                 gate_output_value = self.calculate_gate_output(gate.type, gate_inputs_value)
@@ -85,7 +84,7 @@ class CircuitSimulator:
         # for net in self.nets:
         #     print(f"Net {net.number}: {net.value}")
 
-    
+    #TODO: fix for x values
     @staticmethod
     def calculate_gate_output(gate_type, inputs):
         if gate_type == 'AND':
@@ -107,8 +106,41 @@ class CircuitSimulator:
         else:
             return 'U'  # Unknown for unsupported gates
     
+
+    #TODO:it may have problems
     def simulation_with_delay(self):
-        pass
+        self.true_value_simulation()
 
+        max_time = max(len(self.nets[net].value) for net in range(len(self.nets)) if self.nets[net])
 
+        for gate in self.gates:
+            all_inputs_are_circuit_inputs = all(input_net in self.inputs for input_net in gate.inputs)
+            #TODO: check that is it reference access?
+            output_net = self.nets[gate.output]
+            delay = gate.delay
 
+            if all_inputs_are_circuit_inputs:
+                output_net.value = ['X'] * delay + output_net.value
+            else:
+                gate_inputs_values = [self.nets[input_net].value for input_net in gate.inputs]
+
+                #TODO:is it necessary? accoarding to last lines
+                for idx in range(len(gate_inputs_values)):
+                    gate_inputs_values[idx] += [gate_inputs_values[idx][-1]] * (max_time - len(gate_inputs_values[idx]))
+
+                new_output_values = []
+                for time in range(max_time):
+                    input_values_at_time = [inputs[time] for inputs in gate_inputs_values]
+                    new_output_values.append(self.calculate_gate_output(gate.type, input_values_at_time))
+
+                new_output_values = ['X'] * delay + new_output_values
+                output_net.value = new_output_values
+
+           
+            output_net.value += [output_net.value[-1]] * (max_time - len(output_net.value))
+
+            max_time = max(max_time, len(output_net.value))
+
+        for net in self.nets:
+            if net:
+                net.value += [net.value[-1]] * (max_time - len(net.value))
