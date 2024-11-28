@@ -84,6 +84,28 @@ class CircuitSimulator:
         # print("Simulation Result:")
         # for net in self.nets:
         #     print(f"Net {net.number}: {net.value}")
+
+    
+    @staticmethod
+    def calculate_gate_output(gate_type, inputs):
+        if gate_type == 'AND':
+            return int(all(inputs))
+        elif gate_type == 'NAND':
+            return int(not all(inputs))
+        elif gate_type == 'OR':
+            return int(any(inputs))
+        elif gate_type == 'NOR':
+            return int(not any(inputs))
+        elif gate_type == 'XOR':
+            return int(sum(inputs) % 2 == 1)
+        elif gate_type == 'XNOR':
+            return int(sum(inputs) % 2 == 0)
+        elif gate_type == 'NOT':
+            return int(not inputs[0])
+        elif gate_type == 'BUF':
+            return inputs[0]
+        else:
+            return 'U'  # Unknown for unsupported gates
     
     def simulation_with_delay(self):
         pass
