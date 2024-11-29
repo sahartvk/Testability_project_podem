@@ -48,15 +48,17 @@ class CircuitSimulator:
             tokens = line.split()
             net_number = int(tokens[0])  
             gate_type = tokens[2]   
-            self.nets[net_number] = Net(net_number, f"Net{net_number}")    
+            # self.nets[net_number] = Net(net_number, f"Net{net_number}")    
 
             if gate_type == 'inpt':  
                 self.inputs.append(net_number)
+                self.nets[net_number] = Net(net_number, f"Net {net_number}")    
                 
             elif gate_type == 'from':  
                 input_net = int(tokens[3].replace("gat", ""))
                 output_net = net_number
                 self.gates.append(Gate("FANOUT", [input_net], output_net))
+                self.nets[net_number] = Net(net_number, f"Net {input_net}-{net_number}")    
 
             elif gate_type in ['and', 'nand', 'or', 'nor', 'xor', 'xnor', 'not', 'buf']: 
                 output_net = net_number
@@ -71,6 +73,7 @@ class CircuitSimulator:
                     delay = int(input_tokens[num_inputs]) 
 
                 self.gates.append(Gate(gate_type.upper(), input_nets, output_net, delay))
+                self.nets[net_number] = Net(net_number, f"Net {net_number}")    
                 
             i += 1
 
@@ -246,12 +249,12 @@ if __name__ == "__main__":
     print("\nTrue Value Simulation:")
     for net in simulator.nets:
         if net:
-            print(f"Net {net.number}: {net.value}")
+            print(f"{net.name}: {net.value}")
 
     simulator.simulation_with_delay()
     print("\nSimulation with Delay:")
     for net in simulator.nets:
         if net:
-            print(f"Net {net.number}: {net.value}")
+            print(f"{net.name}: {net.value}")
 
 
