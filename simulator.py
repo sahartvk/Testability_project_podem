@@ -2,7 +2,7 @@ class Net:
     def __init__(self, number, name):
         self.number = number
         self.name = name
-        self.value = []
+        self.value = []     # Stores '0', '1', 'U', or 'Z'
 
 
 class Gate:
@@ -47,9 +47,9 @@ class CircuitSimulator:
             elif gate_type == 'from':  
                 input_net = int(tokens[3].replace("gat", ""))
                 output_net = net_number
-                self.gates.append(Gate("BUF", [input_net], output_net))
+                self.gates.append(Gate("FANOUT", [input_net], output_net))
 
-            elif gate_type in ['and', 'nand', 'or', 'nor', 'xor', 'xnor', 'not']: 
+            elif gate_type in ['and', 'nand', 'or', 'nor', 'xor', 'xnor', 'not', 'buf']: 
                 output_net = net_number
                 
                 i += 1
@@ -95,27 +95,72 @@ class CircuitSimulator:
                 print(f"Net {net.number}: {net.value}")
 
 
-    #TODO: fix for x values
     @staticmethod
     def calculate_gate_output(gate_type, inputs):
         if gate_type == 'AND':
-            return int(all(inputs))
+            if 0 in inputs:
+                return 0
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'U' in inputs:
+                return 'U'
+            else:
+                return 1 
+
         elif gate_type == 'NAND':
-            return int(not all(inputs))
+            if 0 in inputs:
+                return 1
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'U' in inputs:
+                return 'U'
+            else:
+                return 0 
+       
         elif gate_type == 'OR':
-            return int(any(inputs))
+            if 1 in inputs:
+                return 1
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'U' in inputs:
+                return 'U'
+            else:
+                return 0 
+
         elif gate_type == 'NOR':
-            return int(not any(inputs))
+            if 1 in inputs:
+                return 0
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'U' in inputs:
+                return 'U'
+            else:
+                return 1
+
         elif gate_type == 'XOR':
-            return int(sum(inputs) % 2 == 1)
+            if 'Z' in inputs or 'U' in inputs:
+                return 'U'
+            else:
+                return int(sum(inputs) % 2 == 1)
+
         elif gate_type == 'XNOR':
-            return int(sum(inputs) % 2 == 0)
+            if 'Z' in inputs or 'U' in inputs:
+                return 'U'
+            else:
+                return int(sum(inputs) % 2 == 0) 
+        
         elif gate_type == 'NOT':
-            return int(not inputs[0])
-        elif gate_type == 'BUF':
+            input_value = inputs[0]
+            if input_value == 'Z' or input_value == 'U':
+                return input_value
+            else:
+                return 1 if input_value == 0 else 0
+
+        elif gate_type in ['BUF', 'FANOUT']:
             return inputs[0]
+
         else:
-            return 'U'  # Unknown for unsupported gates
+            return 'U' 
     
 
     #TODO:it may have problems
