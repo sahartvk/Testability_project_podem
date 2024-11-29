@@ -7,20 +7,20 @@ class Net:
 
 class Gate:
     def __init__(self, type_, inputs, output, delay=0):
-        self.type = type_  # Gate type (e.g., AND, NAND, etc.)
-        self.inputs = inputs  # List of input net numbers
-        self.output = output  # Output net number
-        self.delay = delay  # Gate delay
+        self.type = type_  
+        self.inputs = inputs  
+        self.output = output  
+        self.delay = delay  
 
 
 class CircuitSimulator:
     def __init__(self, file_name):
-        file_name = file_name
-        gates = []
-        inputs = []
-        outputs = []
-        input_values = []
-        nets = []
+        self.file_name = file_name
+        self.gates = []
+        self.inputs = []
+        self.outputs = []
+        self.input_values = []
+        self.nets = []
 
 
     def read_isc_file(self):
@@ -28,7 +28,14 @@ class CircuitSimulator:
         with open(self.file_name, 'r') as f:
             lines = f.readlines()
 
-        self.nets = [None] * len(lines)
+        max_net_number = 0
+        for line in lines:
+            if line.strip() and not line.startswith("*"):
+                tokens = line.split()
+                max_net_number = max(max_net_number, int(tokens[0]))
+
+        self.nets = [None] * (max_net_number + 1)
+
         i = 0
         while i < len(lines):
             line = lines[i].strip()
@@ -51,14 +58,18 @@ class CircuitSimulator:
 
             elif gate_type in ['and', 'nand', 'or', 'nor', 'xor', 'xnor', 'not', 'buf']: 
                 output_net = net_number
-                
+                num_inputs = int(tokens[4])
                 i += 1
                 input_line = lines[i].strip()
                 input_tokens = input_line.split()
-                input_nets = [int(token) for token in input_tokens]
-                self.gates.append(Gate(gate_type.upper(), input_nets, output_net))
-                self.nets.append(Net(output_net, f"Net{output_net}"))
+                input_nets = [int(token) for token in input_tokens[:num_inputs]]
 
+                delay = 0
+                if len(input_tokens) > num_inputs:  
+                    delay = int(input_tokens[num_inputs]) 
+
+                self.gates.append(Gate(gate_type.upper(), input_nets, output_net, delay))
+                
             i += 1
 
 
@@ -67,22 +78,44 @@ class CircuitSimulator:
             lines = file.readlines()
 
         input_order = list(map(int, lines[0].strip().split()))
-
         self.input_values = []
-
         input_indices = [input_order.index(input_net) for input_net in self.inputs]
-
         for line in lines[1:]:
             bits = line.strip()
+            bits = bits.split()
             time_step_values = [bits[idx] for idx in input_indices]
+            # print(time_step_values)
             self.input_values.append(time_step_values)
 
 
 
+    # def true_value_simulation(self):
+    # # need to delete values before each simulation
+    #     # print(len(self.input_values))
+    #     for time in range(len(self.input_values)): 
+    #         for idx, input_net in enumerate(self.inputs):
+    #             self.nets[input_net].value.append(self.input_values[time][idx])
+
+    #         for gate in self.gates:
+    #             gate_inputs_value = [self.nets[net].value[time] for net in gate.inputs]
+    #             gate_output_value = self.calculate_gate_output(gate.type, gate_inputs_value)
+    #             self.nets[gate.output].value.append(gate_output_value)
+
+    #     print("\nTrue Value Simulation:")
+    #     for net in self.nets:
+    #         if net:
+    #             print(f"Net {net.number}: {net.value}")
+    #             # print(f"Net {net.number}: {''.join(net.value)}")
+
     def true_value_simulation(self):
-        for time in range(len(self.input_values)): 
+        max_time = len(self.input_values)
+        for net in self.nets:
+            if net:
+                net.value = [None] * max_time
+
+        for time in range(max_time):
             for idx, input_net in enumerate(self.inputs):
-                self.nets[input_net].value.append(self.input_values[time][idx])
+                self.nets[input_net].value[time] = self.input_values[time][idx]
 
             for gate in self.gates:
                 gate_inputs_value = [self.nets[net].value[time] for net in gate.inputs]
@@ -93,7 +126,6 @@ class CircuitSimulator:
         for net in self.nets:
             if net:
                 print(f"Net {net.number}: {net.value}")
-                # print(f"Net {net.number}: {''.join(net.value)}")
 
 
     @staticmethod
@@ -212,8 +244,8 @@ class CircuitSimulator:
 
 
 if __name__ == "__main__":
-    simulator = CircuitSimulator("c17.isc")
+    simulator = CircuitSimulator("D:/courses/sharif/term1/Testability/project/1/code/Testability_project/c17.isc")
     simulator.read_isc_file()
-    simulator.read_inputs("inputs.txt")
+    simulator.read_inputs("D:/courses/sharif/term1/Testability/project/1/code/Testability_project/input.txt")
     simulator.true_value_simulation()
     simulator.simulation_with_delay()
