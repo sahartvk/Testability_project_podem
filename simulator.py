@@ -1,3 +1,6 @@
+import os
+
+
 class Net:
     def __init__(self, number, name):
         self.number = number
@@ -24,7 +27,6 @@ class CircuitSimulator:
 
 
     def read_isc_file(self):
-        # TODO: store delays
         with open(self.file_name, 'r') as f:
             lines = f.readlines()
 
@@ -94,25 +96,6 @@ class CircuitSimulator:
 
             self.input_values.append(time_step_values)
 
-
-
-    # def true_value_simulation(self):
-    # # need to delete values before each simulation
-    #     # print(len(self.input_values))
-    #     for time in range(len(self.input_values)): 
-    #         for idx, input_net in enumerate(self.inputs):
-    #             self.nets[input_net].value.append(self.input_values[time][idx])
-
-    #         for gate in self.gates:
-    #             gate_inputs_value = [self.nets[net].value[time] for net in gate.inputs]
-    #             gate_output_value = self.calculate_gate_output(gate.type, gate_inputs_value)
-    #             self.nets[gate.output].value.append(gate_output_value)
-
-    #     print("\nTrue Value Simulation:")
-    #     for net in self.nets:
-    #         if net:
-    #             print(f"Net {net.number}: {net.value}")
-    #             # print(f"Net {net.number}: {''.join(net.value)}")
 
     def true_value_simulation(self):
         max_time = len(self.input_values)
@@ -251,9 +234,13 @@ class CircuitSimulator:
 
 
 if __name__ == "__main__":
-    simulator = CircuitSimulator("D:/courses/sharif/term1/Testability/project/1/code/Testability_project/c17.isc")
+    # isc file name
+    file_name = os.path.join(os.getcwd(), "c17.isc")
+    simulator = CircuitSimulator(file_name)
     simulator.read_isc_file()
-    simulator.read_inputs("D:/courses/sharif/term1/Testability/project/1/code/Testability_project/input.txt")
+    # input file anme
+    input_file = os.path.join(os.getcwd(), "input.txt")
+    simulator.read_inputs(input_file)
     simulator.true_value_simulation()
 
     print("\nTrue Value Simulation:")
