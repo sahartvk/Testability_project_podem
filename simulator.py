@@ -93,6 +93,7 @@ class CircuitSimulator:
         for net in self.nets:
             if net:
                 print(f"Net {net.number}: {net.value}")
+                # print(f"Net {net.number}: {''.join(net.value)}")
 
 
     @staticmethod
@@ -176,7 +177,7 @@ class CircuitSimulator:
             delay = gate.delay
 
             if all_inputs_are_circuit_inputs:
-                output_net.value = ['X'] * delay + output_net.value
+                output_net.value = ['U'] * delay + output_net.value
             else:
                 gate_inputs_values = [self.nets[input_net].value for input_net in gate.inputs]
 
@@ -189,7 +190,7 @@ class CircuitSimulator:
                     input_values_at_time = [inputs[time] for inputs in gate_inputs_values]
                     new_output_values.append(self.calculate_gate_output(gate.type, input_values_at_time))
 
-                new_output_values = ['X'] * delay + new_output_values
+                new_output_values = ['U'] * delay + new_output_values
                 output_net.value = new_output_values
 
            
@@ -205,6 +206,7 @@ class CircuitSimulator:
         for net in self.nets:
             if net:
                 print(f"Net {net.number}: {net.value}")
+                # print(f"Net {net.number}: {''.join(net.value)}")
 
 
 
