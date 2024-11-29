@@ -83,8 +83,15 @@ class CircuitSimulator:
         for line in lines[1:]:
             bits = line.strip()
             bits = bits.split()
-            time_step_values = [bits[idx] for idx in input_indices]
-            # print(time_step_values)
+            time_step_values = []
+
+            for idx in input_indices:
+                value = bits[idx]
+                if value in {'0', '1'}:  
+                    time_step_values.append(int(value))
+                else:
+                    time_step_values.append(value)
+
             self.input_values.append(time_step_values)
 
 
@@ -122,10 +129,10 @@ class CircuitSimulator:
                 gate_output_value = self.calculate_gate_output(gate.type, gate_inputs_value)
                 self.nets[gate.output].value[time] = gate_output_value
 
-        print("\nTrue Value Simulation:")
-        for net in self.nets:
-            if net:
-                print(f"Net {net.number}: {net.value}")
+        # print("\nTrue Value Simulation:")
+        # for net in self.nets:
+        #     if net:
+        #         print(f"Net {net.number}: {net.value}")
 
 
     @staticmethod
@@ -234,11 +241,11 @@ class CircuitSimulator:
             if net:
                 net.value += [net.value[-1]] * (max_time - len(net.value))
 
-        print("\nSimulation with Delay:")
-        for net in self.nets:
-            if net:
-                print(f"Net {net.number}: {net.value}")
-                # print(f"Net {net.number}: {''.join(net.value)}")
+        # print("\nSimulation with Delay:")
+        # for net in self.nets:
+        #     if net:
+        #         print(f"Net {net.number}: {net.value}")
+        #         # print(f"Net {net.number}: {''.join(net.value)}")
 
 
 
@@ -248,4 +255,16 @@ if __name__ == "__main__":
     simulator.read_isc_file()
     simulator.read_inputs("D:/courses/sharif/term1/Testability/project/1/code/Testability_project/input.txt")
     simulator.true_value_simulation()
+
+    print("\nTrue Value Simulation:")
+    for net in simulator.nets:
+        if net:
+            print(f"Net {net.number}: {net.value}")
+
     simulator.simulation_with_delay()
+    print("\nSimulation with Delay:")
+    for net in simulator.nets:
+        if net:
+            print(f"Net {net.number}: {net.value}")
+
+
