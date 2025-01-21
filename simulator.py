@@ -6,6 +6,9 @@ class Net:
         self.number = number
         self.name = name
         self.value = []     # Stores '0', '1', 'U', or 'Z'
+        self.cc1 = float('inf')
+        self.cc0 = float('inf')
+        self.co = float('inf')
 
 
 class Gate:
@@ -20,7 +23,9 @@ class CircuitSimulator:
     def __init__(self, file_name):
         self.file_name = file_name
         self.gates = []
+        # list of input numbers
         self.inputs = []
+        # TODO: comment outputs
         self.outputs = []
         self.input_values = []
         self.nets = []
@@ -232,6 +237,77 @@ class CircuitSimulator:
         #     if net:
         #         print(f"Net {net.number}: {net.value}")
         #         # print(f"Net {net.number}: {''.join(net.value)}")
+
+
+    def calculate_scoap(self):
+        for net in self.nets:
+            if net:
+                net.cc0 = float('inf')  
+                net.cc1 = float('inf')  
+                net.co = float('inf')  
+
+        for input_net in self.inputs:
+            self.nets[input_net].cc0 = 1
+            self.nets[input_net].cc1 = 1
+
+        for gate in self.gates:
+            gate_inputs = [self.nets[net] for net in gate.inputs]
+            gate_output = self.nets[gate.output]
+
+            if gate.type == 'AND':
+                gate_output.cc0 = min(net.cc0 for net in gate_inputs) + 1
+                gate_output.cc1 = sum(net.cc1 for net in gate_inputs) + 1
+
+            if gate.type == 'NAND':
+                gate_output.cc1 = min(net.cc0 for net in gate_inputs) + 1
+                gate_output.cc0 = sum(net.cc1 for net in gate_inputs) + 1
+
+            elif gate.type == 'OR':
+                gate_output.cc0 = sum(net.cc0 for net in gate_inputs) + 1
+                gate_output.cc1 = min(net.cc1 for net in gate_inputs) + 1
+
+            elif gate.type == 'NOR':
+                gate_output.cc1 = sum(net.cc0 for net in gate_inputs) + 1
+                gate_output.cc0 = min(net.cc1 for net in gate_inputs) + 1
+
+            elif gate.type == 'NOT':
+                gate_output.cc0 = gate_inputs[0].cc1 + 1
+                gate_output.cc1 = gate_inputs[0].cc0 + 1
+            # TODO: for more than 2 gates
+            elif gate.type == 'XOR':
+                gate_output.cc0 = min(
+                    gate_inputs[0].cc0 + gate_inputs[1].cc0,
+                    gate_inputs[0].cc1 + gate_inputs[1].cc1
+                ) + 1
+                gate_output.cc1 = min(
+                    gate_inputs[0].cc0 + gate_inputs[1].cc1,
+                    gate_inputs[0].cc1 + gate_inputs[1].cc0
+                ) + 1
+            # TODO: for more than 2 gates
+            elif gate.type == 'XNOR':
+                gate_output.cc0 = min(
+                    gate_inputs[0].cc0 + gate_inputs[1].cc1,
+                    gate_inputs[0].cc1 + gate_inputs[1].cc0
+                ) + 1
+                gate_output.cc1 = min(
+                    gate_inputs[0].cc0 + gate_inputs[1].cc0,
+                    gate_inputs[0].cc1 + gate_inputs[1].cc1
+                ) + 1
+
+            elif gate.type in ['BUF', 'FANOUT']:
+                gate_output.cc0 = gate_inputs[0].cc0
+                gate_output.cc1 = gate_inputs[0].cc1
+
+
+        # TODO: compute co 
+
+        with open("SCOAP.txt", "w") as f:
+            for net in self.nets:
+                if net:
+                    line = f"{net.name}\t({net.cc0},{net.cc1})\t{net.co}\n"
+                    f.write(line)
+
+        print("SCOAP analysis completed. Results saved to SCOAP.txt")
 
 
 
