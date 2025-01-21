@@ -25,7 +25,6 @@ class CircuitSimulator:
         self.gates = []
         # list of input numbers
         self.inputs = []
-        # TODO: comment outputs
         self.outputs = []
         self.input_values = []
         self.nets = []
@@ -42,6 +41,7 @@ class CircuitSimulator:
                 max_net_number = max(max_net_number, int(tokens[0]))
 
         self.nets = [None] * (max_net_number + 1)
+        used_as_input = set()
 
         i = 0
         while i < len(lines):
@@ -53,17 +53,17 @@ class CircuitSimulator:
             tokens = line.split()
             net_number = int(tokens[0])  
             gate_type = tokens[2]   
-            # self.nets[net_number] = Net(net_number, f"Net{net_number}")    
 
             if gate_type == 'inpt':  
                 self.inputs.append(net_number)
                 self.nets[net_number] = Net(net_number, f"Net {net_number}")    
-                
+
             elif gate_type == 'from':  
                 input_net = int(tokens[3].replace("gat", ""))
                 output_net = net_number
                 self.gates.append(Gate("FANOUT", [input_net], output_net))
                 self.nets[net_number] = Net(net_number, f"Net {input_net}-{net_number}")    
+                used_as_input.add(input_net)
 
             elif gate_type in ['and', 'nand', 'or', 'nor', 'xor', 'xnor', 'not', 'buf']: 
                 output_net = net_number
@@ -79,30 +79,38 @@ class CircuitSimulator:
 
                 self.gates.append(Gate(gate_type.upper(), input_nets, output_net, delay))
                 self.nets[net_number] = Net(net_number, f"Net {net_number}")    
+                used_as_input.update(input_nets)
                 
             i += 1
 
+        all_outputs = {gate.output for gate in self.gates}
+        self.outputs = list(all_outputs - used_as_input)
 
-    def read_inputs(self, file_path):
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
+        # TODO: comment
+        print(f"Outputs: {self.outputs}")
 
-        input_order = list(map(int, lines[0].strip().split()))
-        self.input_values = []
-        input_indices = [input_order.index(input_net) for input_net in self.inputs]
-        for line in lines[1:]:
-            bits = line.strip()
-            bits = bits.split()
-            time_step_values = []
 
-            for idx in input_indices:
-                value = bits[idx]
-                if value in {'0', '1'}:  
-                    time_step_values.append(int(value))
-                else:
-                    time_step_values.append(value)
 
-            self.input_values.append(time_step_values)
+        def read_inputs(self, file_path):
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+
+            input_order = list(map(int, lines[0].strip().split()))
+            self.input_values = []
+            input_indices = [input_order.index(input_net) for input_net in self.inputs]
+            for line in lines[1:]:
+                bits = line.strip()
+                bits = bits.split()
+                time_step_values = []
+
+                for idx in input_indices:
+                    value = bits[idx]
+                    if value in {'0', '1'}:  
+                        time_step_values.append(int(value))
+                    else:
+                        time_step_values.append(value)
+
+                self.input_values.append(time_step_values)
 
 
     def true_value_simulation(self):
