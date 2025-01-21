@@ -306,8 +306,34 @@ class CircuitSimulator:
                 gate_output.cc0 = gate_inputs[0].cc0
                 gate_output.cc1 = gate_inputs[0].cc1
 
+        # Compute co (observability)
+        # TODO: initialize co oputputs to 0
+        for gate in reversed(self.gates):  # Back-propagate observability
+            gate_inputs = [self.nets[net] for net in gate.inputs]
+            gate_output = self.nets[gate.output]
+            
+            for input_net in gate_inputs:
+                if gate.type == 'AND' or gate.type == 'NAND':
+                    input_net.co = min(input_net.co, gate_output.co + sum(
+                        [n.cc1 for n in gate_inputs if n != input_net]) + 1)
 
-        # TODO: compute co 
+                elif gate.type == 'OR' or gate.type == 'NOR':
+                    input_net.co = min(input_net.co, gate_output.co + sum(
+                        [n.cc0 for n in gate_inputs if n != input_net]) + 1)
+
+                elif gate.type == 'NOT':
+                    input_net.co = min(input_net.co, gate_output.co + 1)
+
+                # TODO: fix this part: min([gate_inputs[1].cc0, gate_inputs[1].cc1]) -> other inputs
+                elif gate.type == 'XOR' or gate.type == 'XNOR':
+                    input_net.co = min(
+                        input_net.co, 
+                        gate_output.co + min([gate_inputs[1].cc0, gate_inputs[1].cc1]) + 1
+                    )
+                # TODO: fix fanout outputs,consider all putputs
+                elif gate.type in ['BUF', 'FANOUT']:
+                    input_net.co = min(input_net.co, gate_output.co)
+
 
         with open("SCOAP.txt", "w") as f:
             for net in self.nets:
