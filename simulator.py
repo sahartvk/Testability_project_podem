@@ -307,7 +307,7 @@ class CircuitSimulator:
                 gate_output.cc1 = gate_inputs[0].cc1
 
         # Compute co (observability)
-        # TODO: initialize co oputputs to 0
+        # TODO: initialize co outputs to 0
         for gate in reversed(self.gates):  # Back-propagate observability
             gate_inputs = [self.nets[net] for net in gate.inputs]
             gate_output = self.nets[gate.output]
