@@ -281,7 +281,7 @@ class CircuitSimulator:
             elif gate.type == 'NOT':
                 gate_output.cc0 = gate_inputs[0].cc1 + 1
                 gate_output.cc1 = gate_inputs[0].cc0 + 1
-            # TODO: for more than 2 gates
+            # TODO: fix below for more than 2 inputs
             elif gate.type == 'XOR':
                 gate_output.cc0 = min(
                     gate_inputs[0].cc0 + gate_inputs[1].cc0,
@@ -291,7 +291,7 @@ class CircuitSimulator:
                     gate_inputs[0].cc0 + gate_inputs[1].cc1,
                     gate_inputs[0].cc1 + gate_inputs[1].cc0
                 ) + 1
-            # TODO: for more than 2 gates
+            # TODO: fix below for more than 2 inputs
             elif gate.type == 'XNOR':
                 gate_output.cc0 = min(
                     gate_inputs[0].cc0 + gate_inputs[1].cc1,
@@ -306,8 +306,10 @@ class CircuitSimulator:
                 gate_output.cc0 = gate_inputs[0].cc0
                 gate_output.cc1 = gate_inputs[0].cc1
 
-        # Compute co (observability)
-        # TODO: initialize co outputs to 0
+        # Compute observability
+        for output_net in self.outputs:
+            self.nets[output_net].co = 0
+
         for gate in reversed(self.gates):  # Back-propagate observability
             gate_inputs = [self.nets[net] for net in gate.inputs]
             gate_output = self.nets[gate.output]
@@ -324,13 +326,11 @@ class CircuitSimulator:
                 elif gate.type == 'NOT':
                     input_net.co = min(input_net.co, gate_output.co + 1)
 
-                # TODO: fix this part: min([gate_inputs[1].cc0, gate_inputs[1].cc1]) -> other inputs
+                # TODO: test this part
                 elif gate.type == 'XOR' or gate.type == 'XNOR':
-                    input_net.co = min(
-                        input_net.co, 
-                        gate_output.co + min([gate_inputs[1].cc0, gate_inputs[1].cc1]) + 1
-                    )
-                # TODO: fix fanout outputs,consider all putputs
+                    input_net.co = min(input_net.co, gate_output.co + sum(
+                            [min(n.cc0, n.cc1) for n in gate_inputs if n != input_net]) + 1)
+                    
                 elif gate.type in ['BUF', 'FANOUT']:
                     input_net.co = min(input_net.co, gate_output.co)
 
