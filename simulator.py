@@ -281,7 +281,7 @@ class CircuitSimulator:
             elif gate.type == 'NOT':
                 gate_output.cc0 = gate_inputs[0].cc1 + 1
                 gate_output.cc1 = gate_inputs[0].cc0 + 1
-            # TODO: fix below for more than 2 inputs
+            # TODO: fix code below for more than 2 inputs
             elif gate.type == 'XOR':
                 gate_output.cc0 = min(
                     gate_inputs[0].cc0 + gate_inputs[1].cc0,
@@ -291,7 +291,7 @@ class CircuitSimulator:
                     gate_inputs[0].cc0 + gate_inputs[1].cc1,
                     gate_inputs[0].cc1 + gate_inputs[1].cc0
                 ) + 1
-            # TODO: fix below for more than 2 inputs
+            # TODO: fix code below for more than 2 inputs
             elif gate.type == 'XNOR':
                 gate_output.cc0 = min(
                     gate_inputs[0].cc0 + gate_inputs[1].cc1,
