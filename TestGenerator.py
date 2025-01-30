@@ -1,11 +1,12 @@
-from simulator import CircuitSimulator
+from simulator import CircuitSimulator, Gate
 
 
 class TestGenerator:
-    def __init__(self, circuit_simulator, fault_file):
+    def __init__(self, circuit_simulator: CircuitSimulator, fault_file):
         self.simulator = circuit_simulator
         self.fault_file = fault_file
         self.faults = self.load_faults(fault_file)
+        self.d_frontier = []
 
     def load_faults(self, fault_file):
         faults = []
@@ -34,26 +35,73 @@ class TestGenerator:
                 else:
                     f.write(f"{fault_line} {fault_type} none found\n")
 
-    
-    def podem():
-        pass
+    def XPathCheck(self):
+        if (len(self.d_frontier) < 1):
+            return False
+        return True
+
+    def podem(self, fault_net, fault_type):
+        # TODO: trigger fault for first time.
+        self.UpdateDFrontier()
+
+        for output_net in self.simulator.outputs:
+            if self.simulator.nets[output_net].value in ['D', "Db"]:
+                return True
+            
+        if (self.XPathCheck() == False):
+            return False
+        
+        objective_input, objective_value = self.objective(fault_net, fault_type)
+        pi_net, pi_value = self.backtrace(objective_input, objective_value)
+        
+        # TODO: check
+        self.simulator.nets[pi_net] = pi_value
+        if (pi_net == fault_net):
+            if (pi_value == 1 and fault_type == 'sa0'):
+                self.simulator.nets[pi_net] = 'D'
+            elif (pi_value == 0 and fault_type == 'sa1'):
+                self.simulator.nets[pi_net] = 'Db'
+
+
+        # TODO: is it okay?  ->  logicSimulate(faultNode, stuckAt, wires)
+        self.imply()
+
+        if (self.podem(fault_net, fault_type) == True):
+            return True
+
+        # TODO: backtrack -> it has problems
+        if(pi_value == '1'):
+            pi_value = '0'
+        else:
+            pi_value = '1'
+        self.simulator.nets[pi_net] = pi_value
+
+        # TODO: is it okay?  ->  logicSimulate(faultNode, stuckAt, wires)
+        self.imply()
+
+        if (self.podem(fault_net, fault_type) == True):
+            return True
+
+        pi_value = 'X'
+        self.simulator.nets[pi_net] = pi_value
+
+        return False
+
+    def UpdateDFrontier(self):
+        # TODO: check function
+        self.d_frontier = [g for g in self.simulator.gates if self.simulator.nets[g.output].value == 'X' and 
+                    any(self.nets[i].value in ['D', "Db"] for i in g.inputs)]
+
 
 
     def objective(self, fault_net, fault_type):
         if self.simulator.nets[fault_net].value == 'X':
             return fault_net, 1 if fault_type == 'sa0' else 0
 
-        # TODO: fix
-        d_frontier = [g for g in self.simulator.gates if self.nets[g.output].value == 'X' and 
-                    any(self.nets[i].value in ['D', "D'"] for i in g.inputs)]
-        
-        if not d_frontier:
-            return None, None
-
-        gate = d_frontier[0]
+        gate = self.d_frontier[0]
         unassigned_inputs = [i for i in gate.inputs if self.simulator.nets[i].value == 'X']
-        if not unassigned_inputs:
-            return None, None
+
+        # TODO: return none, none 
         selected_input = unassigned_inputs[0] 
         controlling_values = {'AND': 0, 'OR': 1, 'NAND': 0, 'NOR': 1}
         if gate.gate_type in controlling_values:
@@ -72,14 +120,14 @@ class TestGenerator:
             if gate.gate_type in {'NAND', 'NOR', 'NOT'}:
                 v = ~v
 
+            # TODO: xor and xnor?
             if self.requires_all_inputs(gate, v):
                 a = self.select_hardest_control_input(gate, v)
             else:
                 a = self.select_easiest_control_input(gate, v)
 
-            s = a  # به ورودی انتخاب شده حرکت می‌کنیم
-
-        return s, v  # بازگرداندن ورودی اولیه مناسب
+            s = a 
+        return s, v
 
 
     def requires_all_inputs(self, gate, v):
@@ -87,23 +135,25 @@ class TestGenerator:
             return True 
         return False
 
-def select_hardest_control_input(self, gate, v):
-    """
-    سخت‌ترین ورودی از نظر کنترل‌پذیری را انتخاب می‌کند.
-    """
-    # برای ساده‌سازی، اولین ورودی را انتخاب می‌کنیم (در عمل می‌توان این را بر اساس کنترل‌پذیری بهبود داد)
-    return min(gate.inputs, key=lambda i: self.get_controllability(i, v))
 
-def select_easiest_control_input(self, gate, v):
-    """
-    آسان‌ترین ورودی از نظر کنترل‌پذیری را انتخاب می‌کند.
-    """
-    return max(gate.inputs, key=lambda i: self.get_controllability(i, v))
+    def select_hardest_control_input(self, gate: Gate, v):
+        if v == 0:
+            return max(gate.inputs, key=lambda net: self.simulator.nets[net].cc0)
+        elif v == 1:
+            return max(gate.inputs, key=lambda net: self.simulator.nets[net].cc1)
+        return None
 
-def get_controllability(self, net, v):
-    """
-    مقدار کنترل‌پذیری را برای یک ورودی خاص برمی‌گرداند.
-    """
-    # این تابع بسته به روش محاسبه کنترل‌پذیری می‌تواند مقدار مناسب را برگرداند.
-    # مقدار پایین‌تر نشان‌دهنده راحت‌تر بودن مقداردهی است.
-    return 0  # مقدار فرضی برای تست
+
+    def select_easiest_control_input(self, gate, v):
+        if v == 0:
+            return min(gate.inputs, key=lambda net: self.simulator.nets[net].cc0)
+        elif v == 1:
+            return min(gate.inputs, key=lambda net: self.simulator.nets[net].cc1)
+        return None
+
+    def imply(self):
+        # TODO: 5-value logic in calculate_gate_output
+        for gate in self.simulator.gates:
+            gate_inputs_value = [self.simulator.nets[net].value for net in gate.inputs]
+            gate_output_value = self.simulator.calculate_gate_output(gate.type, gate_inputs_value)
+            self.simulator.nets[gate.output].value = gate_output_value
