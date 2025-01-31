@@ -41,7 +41,7 @@ class TestGenerator:
 
         print(f"PODEM completed. Results saved to {out_file}.")
 
-    def XPathCheck(self, ):
+    def XPathCheck(self):
         # If fault is at Input as is X
         # if(faultNode in inputs):
         #     if(wires[faultNode] != 'X'):
