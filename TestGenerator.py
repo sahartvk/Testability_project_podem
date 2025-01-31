@@ -8,40 +8,80 @@ class TestGenerator:
         self.faults = self.load_faults(fault_file)
         self.d_frontier = []
 
-    def load_faults(self, fault_file):
+
+    def run_podem_for_faults(self, fault_file="fault_file.txt", out_file="test_vector.txt"):
+        """
+        Reads faults from fault_file, runs PODEM, and writes test vectors to out_file.
+        """
         faults = []
-        with open(fault_file, 'r') as f:
+        with open(fault_file, "r") as f:
             for line in f:
-                if line.strip():  
-                    tokens = line.split()
-                    fault_net = tokens[0]
-                    fault_type = tokens[1]
-                    faults.append((fault_net, fault_type))
-        return faults
+                parts = line.strip().split()
+                if len(parts) != 2:
+                    continue
+                fault_net = int(parts[0])
+                stuck_val = parts[1].lower()
+                faults.append((fault_net, stuck_val))
 
+        results = []
+        for (fault_net, stuck_val) in faults:
+            test_vec = self.call_podem(fault_net, stuck_val)
+            results.append((fault_net, stuck_val, test_vec))
 
-
-    # TODO:fix
-    def generate_all_test_vectors(self, output_file='test_vectors.txt'):
-        with open(output_file, 'w') as f:
-            
-            f.write("net fault " + " ".join(map(str, self.simulator.inputs)) + "\n")
-
-            for fault in self.faults:
-                test_vector = self.generate_test_vector_for_fault(fault)
-                fault_line, fault_type = fault
-                if test_vector:
-                    f.write(f"{fault_line} {fault_type} " + " ".join(map(str, test_vector)) + "\n")
+        # Save test vectors
+        with open(out_file, "w") as wf:
+            wf.write("net   fault " + " ".join(map(str, self.inputs)) + "\n")
+            for (fault_net, stuck_val, tv) in results:
+                fault_str = f"{fault_net}\t{stuck_val}"
+                if tv is None:
+                    wf.write(f"{fault_str} none found\n")
                 else:
-                    f.write(f"{fault_line} {fault_type} none found\n")
+                    tv_str = "  ".join(map(str, tv))
+                    wf.write(f"{fault_str} {tv_str}\n")
 
-    def XPathCheck(self):
+        print(f"PODEM completed. Results saved to {out_file}.")
+
+    def XPathCheck(self, ):
+        # If fault is at Input as is X
+        # if(faultNode in inputs):
+        #     if(wires[faultNode] != 'X'):
+        #         return 0
+        #     else:
+        #         return 1
+
         if (len(self.d_frontier) < 1):
             return False
         return True
+    
+    def call_podem(self, fault_net, fault_type):
+        self.simulator.initialize_nets_to_x()
+        # TODO: throw exception
+        # TODO: is ot necessary to activate the fault?
+        # if(self.activate_fault() == False):
+        #     return fault_net, fault_type, None
+        
+        if (self.podem(fault_net, fault_type) == False):
+            return fault_net, fault_type, None
+        
+        test_vec =[]
+        for input_net in self.simulator.inputs:
+            input_val = self.simulator.nets[input_net].value[0]
+            test_vec.append[input_val]
+
+        return fault_net, fault_type, test_vec
+        
+
+    def activate_fault(self, fault_net, fault_type):
+        if fault_type == 'sa0':
+            self.simulator.nets[fault_net] = 'D'
+        elif fault_type == 'sa1':
+            self.simulator.nets[fault_net] = 'Db'
+        else:
+            return False
+        return True
+            
 
     def podem(self, fault_net, fault_type):
-        # TODO: trigger fault for first time.
         self.UpdateDFrontier()
 
         for output_net in self.simulator.outputs:
@@ -86,6 +126,8 @@ class TestGenerator:
         self.simulator.nets[pi_net] = pi_value
 
         return False
+    
+
 
     def UpdateDFrontier(self):
         # TODO: check function
@@ -96,7 +138,7 @@ class TestGenerator:
 
     def objective(self, fault_net, fault_type):
         if self.simulator.nets[fault_net].value == 'X':
-            return fault_net, 1 if fault_type == 'sa0' else 0
+            return fault_net, 'D' if fault_type == 'sa0' else 'Db'
 
         gate = self.d_frontier[0]
         unassigned_inputs = [i for i in gate.inputs if self.simulator.nets[i].value == 'X']
@@ -154,6 +196,6 @@ class TestGenerator:
     def imply(self):
         # TODO: 5-value logic in calculate_gate_output
         for gate in self.simulator.gates:
-            gate_inputs_value = [self.simulator.nets[net].value for net in gate.inputs]
-            gate_output_value = self.simulator.calculate_gate_output(gate.type, gate_inputs_value)
-            self.simulator.nets[gate.output].value = gate_output_value
+            gate_inputs_value = [self.simulator.nets[net].value[0] for net in gate.inputs]
+            gate_output_value = Gate.calculate_5valued_gate_output(gate.type, gate_inputs_value)
+            self.simulator.nets[gate.output].value[0] = gate_output_value

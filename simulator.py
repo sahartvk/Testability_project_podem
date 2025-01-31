@@ -5,7 +5,7 @@ class Net:
     def __init__(self, number, name):
         self.number = number
         self.name = name
-        self.value = []     # Stores '0', '1', 'U', or 'Z'
+        self.value = []     # Stores '0', '1', 'X', or 'Z'
         self.cc1 = float('inf')
         self.cc0 = float('inf')
         self.co = float('inf')
@@ -16,7 +16,103 @@ class Gate:
         self.type = type_  
         self.inputs = inputs  
         self.output = output  
-        self.delay = delay  
+        self.delay = delay
+
+
+    @staticmethod
+    def calculate_5valued_gate_output(gate_type, inputs):
+        if gate_type == 'AND':
+            if 0 in inputs:
+                return 0
+            elif 'X' in inputs:
+                return 'X'
+            elif 'Db' in inputs and 'D' in inputs:
+                return 0  # تضاد بین D و Db یعنی مقدار واقعی 0 است
+            elif 'Db' in inputs:
+                return 'Db'
+            elif 'D' in inputs:
+                return 'D'
+            else:
+                return 1
+
+        elif gate_type == 'NAND':
+            if 0 in inputs:
+                return 1
+            elif 'X' in inputs:
+                return 'X'
+            elif 'Db' in inputs and 'D' in inputs:
+                return 1
+            elif 'Db' in inputs:
+                return 'D'
+            elif 'D' in inputs:
+                return 'Db'
+            else:
+                return 0
+
+        elif gate_type == 'OR':
+            if 1 in inputs:
+                return 1
+            elif 'X' in inputs:
+                return 'X'
+            elif 'Db' in inputs and 'D' in inputs:
+                return 1
+            elif 'Db' in inputs:
+                return 'Db'
+            elif 'D' in inputs:
+                return 'D'
+            else:
+                return 0
+
+        elif gate_type == 'NOR':
+            if 1 in inputs:
+                return 0
+            elif 'X' in inputs:
+                return 'X'
+            elif 'Db' in inputs and 'D' in inputs:
+                return 0
+            elif 'Db' in inputs:
+                return 'D'
+            elif 'D' in inputs:
+                return 'Db'
+            else:
+                return 1
+
+        elif gate_type == 'XOR':
+            if 'X' in inputs:
+                return 'X'
+            elif inputs.count('D') % 2 == 1 and inputs.count('Db') % 2 == 0:
+                return 'D'
+            elif inputs.count('Db') % 2 == 1 and inputs.count('D') % 2 == 0:
+                return 'Db'
+            else:
+                return int(sum(1 for i in inputs if i in [1, 'D', 'Db']) % 2 == 1)
+
+        elif gate_type == 'XNOR':
+            xor_result = CircuitSimulator.calculate_5valued_gate_output('XOR', inputs)
+            if xor_result == 'D':
+                return 'Db'
+            elif xor_result == 'Db':
+                return 'D'
+            else:
+                return 1 if xor_result == 0 else 0
+
+        elif gate_type == 'NOT':
+            input_value = inputs[0]
+            if input_value == 'X':
+                return 'X'
+            elif input_value == 'D':
+                return 'Db'
+            elif input_value == 'Db':
+                return 'D'
+            else:
+                return 1 if input_value == 0 else 0
+
+        elif gate_type in ['BUF', 'FANOUT']:
+            return inputs[0]
+
+        else:
+            return 'X'
+  
 
 
 class CircuitSimulator:
@@ -90,6 +186,12 @@ class CircuitSimulator:
         print(f"Outputs: {self.outputs}")
 
 
+    def initialize_nets_to_x(self):
+        for net in self.nets:
+            if net:
+                net.value = ['X']
+
+
 
     def read_inputs(self, file_path):
         with open(file_path, 'r') as file:
@@ -141,8 +243,8 @@ class CircuitSimulator:
                 return 0
             elif 'Z' in inputs:
                 return 'Z'
-            elif 'U' in inputs:
-                return 'U'
+            elif 'X' in inputs:
+                return 'X'
             else:
                 return 1 
 
@@ -151,8 +253,8 @@ class CircuitSimulator:
                 return 1
             elif 'Z' in inputs:
                 return 'Z'
-            elif 'U' in inputs:
-                return 'U'
+            elif 'X' in inputs:
+                return 'X'
             else:
                 return 0 
        
@@ -161,8 +263,8 @@ class CircuitSimulator:
                 return 1
             elif 'Z' in inputs:
                 return 'Z'
-            elif 'U' in inputs:
-                return 'U'
+            elif 'X' in inputs:
+                return 'X'
             else:
                 return 0 
 
@@ -171,26 +273,26 @@ class CircuitSimulator:
                 return 0
             elif 'Z' in inputs:
                 return 'Z'
-            elif 'U' in inputs:
-                return 'U'
+            elif 'X' in inputs:
+                return 'X'
             else:
                 return 1
 
         elif gate_type == 'XOR':
-            if 'Z' in inputs or 'U' in inputs:
-                return 'U'
+            if 'Z' in inputs or 'X' in inputs:
+                return 'X'
             else:
                 return int(sum(inputs) % 2 == 1)
 
         elif gate_type == 'XNOR':
-            if 'Z' in inputs or 'U' in inputs:
-                return 'U'
+            if 'Z' in inputs or 'X' in inputs:
+                return 'X'
             else:
                 return int(sum(inputs) % 2 == 0) 
         
         elif gate_type == 'NOT':
             input_value = inputs[0]
-            if input_value == 'Z' or input_value == 'U':
+            if input_value == 'Z' or input_value == 'X':
                 return input_value
             else:
                 return 1 if input_value == 0 else 0
@@ -199,7 +301,7 @@ class CircuitSimulator:
             return inputs[0]
 
         else:
-            return 'U' 
+            return 'X' 
     
 
     #TODO:it may have problems
@@ -215,7 +317,7 @@ class CircuitSimulator:
             delay = gate.delay
 
             if all_inputs_are_circuit_inputs:
-                output_net.value = ['U'] * delay + output_net.value
+                output_net.value = ['X'] * delay + output_net.value
             else:
                 gate_inputs_values = [self.nets[input_net].value for input_net in gate.inputs]
 
@@ -228,7 +330,7 @@ class CircuitSimulator:
                     input_values_at_time = [inputs[time] for inputs in gate_inputs_values]
                     new_output_values.append(self.calculate_gate_output(gate.type, input_values_at_time))
 
-                new_output_values = ['U'] * delay + new_output_values
+                new_output_values = ['X'] * delay + new_output_values
                 output_net.value = new_output_values
 
            
