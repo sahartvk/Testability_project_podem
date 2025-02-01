@@ -254,13 +254,6 @@ class CircuitSimulator:
         print(f"Outputs: {self.outputs}")
 
 
-    def initialize_nets_to_x(self):
-        for net in self.nets:
-            if net:
-                net.value = ['X']
-
-
-
     def read_inputs(self, file_path):
         with open(file_path, 'r') as file:
             lines = file.readlines()
