@@ -1,11 +1,15 @@
-from simulator import CircuitSimulator, Gate
+from simulator import CircuitSimulator, Gate, Net
+import os
 
 
 class TestGenerator:
-    def __init__(self, circuit_simulator: CircuitSimulator, fault_file):
-        self.simulator = circuit_simulator
-        self.fault_file = fault_file
-        self.faults = self.load_faults(fault_file)
+    def __init__(self, circuit_file_name):
+        # self.simulator = circuit_simulator
+        self.circuit_file_name = os.path.join(os.getcwd(), circuit_file_name)
+        self.simulator = CircuitSimulator(self.circuit_file_name)
+        self.simulator.read_isc_file()
+        # self.fault_file = fault_file
+        # self.faults = self.load_faults(fault_file)
         self.d_frontier = []
 
 
@@ -25,7 +29,7 @@ class TestGenerator:
 
         results = []
         for (fault_net, stuck_val) in faults:
-            test_vec = self.call_podem(fault_net, stuck_val)
+            fault_net, stuck_val, test_vec = self.call_podem(fault_net, stuck_val)
             results.append((fault_net, stuck_val, test_vec))
 
         # Save test vectors
@@ -41,6 +45,19 @@ class TestGenerator:
 
         print(f"PODEM completed. Results saved to {out_file}.")
 
+
+    def call_podem(self, fault_net, fault_type):
+        self.initialize_nets_to_x()
+        
+        if self.podem(fault_net, fault_type) == False:
+            return fault_net, fault_type, None
+        
+        test_vec =[]
+        for input_net in self.simulator.inputs:
+            input_val = self.simulator.nets[input_net].value[0]
+            test_vec.append[input_val]
+
+        return fault_net, fault_type, test_vec
 
     def XPathCheck(self, fault_net):
         if fault_net in self.simulator.inputs:
@@ -63,24 +80,6 @@ class TestGenerator:
                                 return True
                         return False
             return True
-
-    
-    def call_podem(self, fault_net, fault_type):
-        self.initialize_nets_to_x()
-        # TODO: throw exception
-        # TODO: is ot necessary to activate the fault?
-        # if(self.activate_fault() == False):
-        #     return fault_net, fault_type, None
-        
-        if self.podem(fault_net, fault_type) == False:
-            return fault_net, fault_type, None
-        
-        test_vec =[]
-        for input_net in self.simulator.inputs:
-            input_val = self.simulator.nets[input_net].value[0]
-            test_vec.append[input_val]
-
-        return fault_net, fault_type, test_vec
         
 
     def initialize_nets_to_x(self):
@@ -103,7 +102,7 @@ class TestGenerator:
         self.UpdateDFrontier()
 
         for output_net in self.simulator.outputs:
-            if self.simulator.nets[output_net].value in ['D', "Db"]:
+            if self.simulator.nets[output_net].value[0] in ['D', "Db"]:
                 return True
             
         if len(self.d_frontier) < 1 and self.XPathCheck(fault_net) == False:
@@ -113,7 +112,7 @@ class TestGenerator:
         pi_net, pi_value = self.backtrace(objective_input, objective_value)
         
         # TODO: check
-        self.simulator.nets[pi_net] = pi_value
+        self.simulator.nets[pi_net].value[0] = pi_value
         if pi_net == fault_net:
             if pi_value == 1 and fault_type == 'sa0':
                 self.simulator.nets[pi_net] = 'D'
@@ -132,7 +131,7 @@ class TestGenerator:
             pi_value = '0'
         else:
             pi_value = '1'
-        self.simulator.nets[pi_net] = pi_value
+        self.simulator.nets[pi_net].value[0] = pi_value
 
         # TODO: is it okay?  ->  logicSimulate(faultNode, stuckAt, wires)
         self.imply(fault_net, fault_type)
@@ -141,7 +140,7 @@ class TestGenerator:
             return True
 
         pi_value = 'X'
-        self.simulator.nets[pi_net] = pi_value
+        self.simulator.nets[pi_net].value[0] = pi_value
 
         return False
     
@@ -149,18 +148,18 @@ class TestGenerator:
 
     def UpdateDFrontier(self):
         # TODO: check function
-        self.d_frontier = [g for g in self.simulator.gates if self.simulator.nets[g.output].value == 'X' and 
-                    any(self.nets[i].value in ['D', "Db"] for i in g.inputs)]
+        self.d_frontier = [g for g in self.simulator.gates if self.simulator.nets[g.output].value[0] == 'X' and 
+                    any(self.simulator.nets[i].value[0] in ['D', "Db"] for i in g.inputs)]
 
 
 
     def objective(self, fault_net, fault_type):
         # TODO: 1 or D?
-        if self.simulator.nets[fault_net].value == 'X':
+        if self.simulator.nets[fault_net].value[0] == 'X':
             return fault_net, 1 if fault_type == 'sa0' else 0
 
         gate = self.d_frontier[0]
-        unassigned_inputs = [i for i in gate.inputs if self.simulator.nets[i].value == 'X']
+        unassigned_inputs = [i for i in gate.inputs if self.simulator.nets[i].value[0] == 'X']
 
         # TODO: return none, none 
         selected_input = unassigned_inputs[0] 
@@ -215,7 +214,7 @@ class TestGenerator:
     def imply(self, fault_net, fault_type):
         for net in self.simulator.nets:
             if net and net.number not in self.simulator.inputs:
-                net.value = ['X']
+                net.value[0] = ['X']
 
         for gate in self.simulator.gates:
             gate_inputs_value = [self.simulator.nets[net].value[0] for net in gate.inputs]
@@ -225,7 +224,14 @@ class TestGenerator:
                     gate_output_value = 'D'
                 elif gate_output_value == 0 and fault_type == 'sa1':
                     gate_output_value = 'Db'
-                else:
-                    return False
+                # else:
+                #     return False
             self.simulator.nets[gate.output].value[0] = gate_output_value
-        return True
+        # return True
+
+
+
+if __name__ == "__main__":
+
+    test_atpg = TestGenerator("c17.isc")
+    test_atpg.run_podem_for_faults()

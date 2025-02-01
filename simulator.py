@@ -95,7 +95,7 @@ class Gate:
             elif 'X' in inputs:
                 return 'X'
             elif 'Db' in inputs and 'D' in inputs:
-                return 0  # تضاد بین D و Db یعنی مقدار واقعی 0 است
+                return 0 
             elif 'Db' in inputs:
                 return 'Db'
             elif 'D' in inputs:
