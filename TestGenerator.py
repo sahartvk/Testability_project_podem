@@ -55,7 +55,7 @@ class TestGenerator:
         test_vec =[]
         for input_net in self.simulator.inputs:
             input_val = self.simulator.nets[input_net].value[0]
-            test_vec.append[input_val]
+            test_vec.append(input_val)
 
         return fault_net, fault_type, test_vec
 
@@ -66,7 +66,7 @@ class TestGenerator:
         while True:
             for gate in self.d_frontier:
                 if gate.output == fault_net:
-                    if gate.gate_type in ["BUF", "NOT", "FANOUT"]:
+                    if gate.type in ["BUF", "NOT", "FANOUT"]:
                         if self.simulator.nets[gate.inputs[0]].value[0] == 'X':
                             # TODO: below ????
                             fault_net = gate.inputs[0]
@@ -86,16 +86,6 @@ class TestGenerator:
         for net in self.simulator.nets:
             if net:
                 net.value = ['X']
-
-
-    def activate_fault(self, fault_net, fault_type):
-        if fault_type == 'sa0':
-            self.simulator.nets[fault_net] = 'D'
-        elif fault_type == 'sa1':
-            self.simulator.nets[fault_net] = 'Db'
-        else:
-            return False
-        return True
             
 
     def podem(self, fault_net, fault_type):
@@ -109,6 +99,7 @@ class TestGenerator:
             return False
         
         objective_input, objective_value = self.objective(fault_net, fault_type)
+        # print(f"o{objective_input}v{objective_value}")
         pi_net, pi_value = self.backtrace(objective_input, objective_value)
         
         # TODO: check
@@ -148,9 +139,14 @@ class TestGenerator:
 
     def UpdateDFrontier(self):
         # TODO: check function
-        self.d_frontier = [g for g in self.simulator.gates if self.simulator.nets[g.output].value[0] == 'X' and 
-                    any(self.simulator.nets[i].value[0] in ['D', "Db"] for i in g.inputs)]
+        # self.d_frontier = [g for g in self.simulator.gates if self.simulator.nets[g.output].value[0] == 'X' and 
+        #             any(self.simulator.nets[i].value[0] in ['D', "Db"] for i in g.inputs)]
 
+        self.d_frontier = [
+            g for g in self.simulator.gates 
+            if self.simulator.nets[g.output].value and self.simulator.nets[g.output].value[0] == 'X' and 
+            any(self.simulator.nets[i].value and self.simulator.nets[i].value[0] in ['D', "Db"] for i in g.inputs)
+        ]
 
 
     def objective(self, fault_net, fault_type):
@@ -164,8 +160,8 @@ class TestGenerator:
         # TODO: return none, none 
         selected_input = unassigned_inputs[0] 
         controlling_values = {'AND': 0, 'OR': 1, 'NAND': 0, 'NOR': 1}
-        if gate.gate_type in controlling_values:
-            c = controlling_values[gate.gate_type]
+        if gate.type in controlling_values:
+            c = controlling_values[gate.type]
         elif self.simulator.nets[selected_input].cc0 < self.simulator.nets[selected_input].cc1:
             c = 0
         else:
@@ -175,10 +171,11 @@ class TestGenerator:
 
     def backtrace(self, s, v):
         while s not in self.simulator.inputs:
-            gate = [g for g in self.simulator.gates if g.output == s][0]
+            gate = [g for g in self.simulator.gates if g.output == s]
+            gate = gate[0]
             # TODO: xor and xnor?
-            if gate.gate_type in {'NAND', 'NOR', 'NOT'}:
-                v = ~v
+            if gate.type in {'NAND', 'NOR', 'NOT'}:
+                v = 1 - v
 
             # TODO: xor and xnor?
             if self.requires_all_inputs(gate, v):
@@ -191,7 +188,7 @@ class TestGenerator:
 
 
     def requires_all_inputs(self, gate, v):
-        if (gate.gate_type == 'AND' and v == 1) or (gate.gate_type == 'NAND' and v == 0) or (gate.gate_type == 'OR' and v == 0) or (gate.gate_type == 'NOR' and v == 1):
+        if (gate.type == 'AND' and v == 1) or (gate.type == 'NAND' and v == 0) or (gate.type == 'OR' and v == 0) or (gate.type == 'NOR' and v == 1):
             return True 
         return False
 
@@ -212,9 +209,9 @@ class TestGenerator:
         return None
 
     def imply(self, fault_net, fault_type):
-        for net in self.simulator.nets:
-            if net and net.number not in self.simulator.inputs:
-                net.value[0] = ['X']
+        # for net in self.simulator.nets:
+        #     if net and net.number not in self.simulator.inputs:
+        #         net.value[0] = ['X']
 
         for gate in self.simulator.gates:
             gate_inputs_value = [self.simulator.nets[net].value[0] for net in gate.inputs]
@@ -228,6 +225,10 @@ class TestGenerator:
                 #     return False
             self.simulator.nets[gate.output].value[0] = gate_output_value
         # return True
+        for net in self.simulator.nets:
+            if net:
+                print(f"{net.name}: {net.value}")
+
 
 
 
