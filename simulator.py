@@ -20,6 +20,74 @@ class Gate:
 
 
     @staticmethod
+    def calculate_gate_output(gate_type, inputs):
+        if gate_type == 'AND':
+            if 0 in inputs:
+                return 0
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'X' in inputs:
+                return 'X'
+            else:
+                return 1 
+
+        elif gate_type == 'NAND':
+            if 0 in inputs:
+                return 1
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'X' in inputs:
+                return 'X'
+            else:
+                return 0 
+       
+        elif gate_type == 'OR':
+            if 1 in inputs:
+                return 1
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'X' in inputs:
+                return 'X'
+            else:
+                return 0 
+
+        elif gate_type == 'NOR':
+            if 1 in inputs:
+                return 0
+            elif 'Z' in inputs:
+                return 'Z'
+            elif 'X' in inputs:
+                return 'X'
+            else:
+                return 1
+
+        elif gate_type == 'XOR':
+            if 'Z' in inputs or 'X' in inputs:
+                return 'X'
+            else:
+                return int(sum(inputs) % 2 == 1)
+
+        elif gate_type == 'XNOR':
+            if 'Z' in inputs or 'X' in inputs:
+                return 'X'
+            else:
+                return int(sum(inputs) % 2 == 0) 
+        
+        elif gate_type == 'NOT':
+            input_value = inputs[0]
+            if input_value == 'Z' or input_value == 'X':
+                return input_value
+            else:
+                return 1 if input_value == 0 else 0
+
+        elif gate_type in ['BUF', 'FANOUT']:
+            return inputs[0]
+
+        else:
+            return 'X' 
+    
+
+    @staticmethod
     def calculate_5valued_gate_output(gate_type, inputs):
         if gate_type == 'AND':
             if 0 in inputs:
@@ -227,7 +295,7 @@ class CircuitSimulator:
 
             for gate in self.gates:
                 gate_inputs_value = [self.nets[net].value[time] for net in gate.inputs]
-                gate_output_value = self.calculate_gate_output(gate.type, gate_inputs_value)
+                gate_output_value = Gate.calculate_gate_output(gate.type, gate_inputs_value)
                 self.nets[gate.output].value[time] = gate_output_value
 
         # print("\nTrue Value Simulation:")
@@ -236,73 +304,6 @@ class CircuitSimulator:
         #         print(f"Net {net.number}: {net.value}")
 
 
-    @staticmethod
-    def calculate_gate_output(gate_type, inputs):
-        if gate_type == 'AND':
-            if 0 in inputs:
-                return 0
-            elif 'Z' in inputs:
-                return 'Z'
-            elif 'X' in inputs:
-                return 'X'
-            else:
-                return 1 
-
-        elif gate_type == 'NAND':
-            if 0 in inputs:
-                return 1
-            elif 'Z' in inputs:
-                return 'Z'
-            elif 'X' in inputs:
-                return 'X'
-            else:
-                return 0 
-       
-        elif gate_type == 'OR':
-            if 1 in inputs:
-                return 1
-            elif 'Z' in inputs:
-                return 'Z'
-            elif 'X' in inputs:
-                return 'X'
-            else:
-                return 0 
-
-        elif gate_type == 'NOR':
-            if 1 in inputs:
-                return 0
-            elif 'Z' in inputs:
-                return 'Z'
-            elif 'X' in inputs:
-                return 'X'
-            else:
-                return 1
-
-        elif gate_type == 'XOR':
-            if 'Z' in inputs or 'X' in inputs:
-                return 'X'
-            else:
-                return int(sum(inputs) % 2 == 1)
-
-        elif gate_type == 'XNOR':
-            if 'Z' in inputs or 'X' in inputs:
-                return 'X'
-            else:
-                return int(sum(inputs) % 2 == 0) 
-        
-        elif gate_type == 'NOT':
-            input_value = inputs[0]
-            if input_value == 'Z' or input_value == 'X':
-                return input_value
-            else:
-                return 1 if input_value == 0 else 0
-
-        elif gate_type in ['BUF', 'FANOUT']:
-            return inputs[0]
-
-        else:
-            return 'X' 
-    
 
     #TODO:it may have problems
     def simulation_with_delay(self):
@@ -328,7 +329,7 @@ class CircuitSimulator:
                 new_output_values = []
                 for time in range(max_time):
                     input_values_at_time = [inputs[time] for inputs in gate_inputs_values]
-                    new_output_values.append(self.calculate_gate_output(gate.type, input_values_at_time))
+                    new_output_values.append(Gate.calculate_gate_output(gate.type, input_values_at_time))
 
                 new_output_values = ['X'] * delay + new_output_values
                 output_net.value = new_output_values
