@@ -95,7 +95,7 @@ class Gate:
             elif 'X' in inputs:
                 return 'X'
             elif 'Db' in inputs and 'D' in inputs:
-                return 0 
+                return 0  
             elif 'Db' in inputs:
                 return 'Db'
             elif 'D' in inputs:
@@ -251,7 +251,7 @@ class CircuitSimulator:
         self.outputs = list(all_outputs - used_as_input)
 
         # TODO: comment
-        print(f"Outputs: {self.outputs}")
+        # print(f"Outputs: {self.outputs}")
 
 
     def read_inputs(self, file_path):

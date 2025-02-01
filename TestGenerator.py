@@ -8,6 +8,7 @@ class TestGenerator:
         self.circuit_file_name = os.path.join(os.getcwd(), circuit_file_name)
         self.simulator = CircuitSimulator(self.circuit_file_name)
         self.simulator.read_isc_file()
+        self.simulator.calculate_scoap()
         # self.fault_file = fault_file
         # self.faults = self.load_faults(fault_file)
         self.d_frontier = []
@@ -34,16 +35,17 @@ class TestGenerator:
 
         # Save test vectors
         with open(out_file, "w") as wf:
-            wf.write("net   fault " + " ".join(map(str, self.inputs)) + "\n")
+            wf.write("net\tfault\t" + "\t".join(map(str, self.simulator.inputs)) + "\n")
             for (fault_net, stuck_val, tv) in results:
                 fault_str = f"{fault_net}\t{stuck_val}"
                 if tv is None:
-                    wf.write(f"{fault_str} none found\n")
+                    wf.write(f"{fault_str}\tnone found\n")
                 else:
-                    tv_str = "  ".join(map(str, tv))
-                    wf.write(f"{fault_str} {tv_str}\n")
+                    tv_str = "\t".join(map(str, tv))
+                    wf.write(f"{fault_str}\t{tv_str}\n")
 
         print(f"PODEM completed. Results saved to {out_file}.")
+
 
 
     def call_podem(self, fault_net, fault_type):
@@ -99,8 +101,10 @@ class TestGenerator:
             return False
         
         objective_input, objective_value = self.objective(fault_net, fault_type)
-        # print(f"o{objective_input}v{objective_value}")
+        # print(f"podem1: {objective_input}, {objective_value}")
         pi_net, pi_value = self.backtrace(objective_input, objective_value)
+
+        # print(f"podem2: {objective_input}, {objective_value}, {pi_net}, {pi_value}")
         
         # TODO: check
         self.simulator.nets[pi_net].value[0] = pi_value
@@ -110,8 +114,6 @@ class TestGenerator:
             elif pi_value == 0 and fault_type == 'sa1':
                 self.simulator.nets[pi_net] = 'Db'
 
-
-        # TODO: is it okay?  ->  logicSimulate(faultNode, stuckAt, wires)
         self.imply(fault_net, fault_type)
 
         if self.podem(fault_net, fault_type) == True:
@@ -124,7 +126,6 @@ class TestGenerator:
             pi_value = '1'
         self.simulator.nets[pi_net].value[0] = pi_value
 
-        # TODO: is it okay?  ->  logicSimulate(faultNode, stuckAt, wires)
         self.imply(fault_net, fault_type)
 
         if self.podem(fault_net, fault_type) == True:
@@ -138,10 +139,6 @@ class TestGenerator:
 
 
     def UpdateDFrontier(self):
-        # TODO: check function
-        # self.d_frontier = [g for g in self.simulator.gates if self.simulator.nets[g.output].value[0] == 'X' and 
-        #             any(self.simulator.nets[i].value[0] in ['D', "Db"] for i in g.inputs)]
-
         self.d_frontier = [
             g for g in self.simulator.gates 
             if self.simulator.nets[g.output].value and self.simulator.nets[g.output].value[0] == 'X' and 
@@ -166,24 +163,30 @@ class TestGenerator:
             c = 0
         else:
             c = 1
-        return selected_input, ~c
+        return selected_input, 1-c
     
 
     def backtrace(self, s, v):
         while s not in self.simulator.inputs:
-            gate = [g for g in self.simulator.gates if g.output == s]
-            gate = gate[0]
+            # print(f"s:{s}")
+            gates = [g for g in self.simulator.gates if g.output == s]
+            gate = gates[0]
             # TODO: xor and xnor?
+            last_v = v
             if gate.type in {'NAND', 'NOR', 'NOT'}:
                 v = 1 - v
 
             # TODO: xor and xnor?
-            if self.requires_all_inputs(gate, v):
+            # print(f"gate inputs:{gate.inputs}, v:{v}, last_v:{last_v}")
+            if self.requires_all_inputs(gate, last_v):
+                # print("hardest")
                 a = self.select_hardest_control_input(gate, v)
             else:
+                # print("easiest")
                 a = self.select_easiest_control_input(gate, v)
 
             s = a 
+            # print(a)
         return s, v
 
 
@@ -194,19 +197,24 @@ class TestGenerator:
 
 
     def select_hardest_control_input(self, gate: Gate, v):
-        if v == 0:
-            return max(gate.inputs, key=lambda net: self.simulator.nets[net].cc0)
-        elif v == 1:
-            return max(gate.inputs, key=lambda net: self.simulator.nets[net].cc1)
+        unassigned_inputs = [net for net in gate.inputs if self.simulator.nets[net].value[0] == 'X']
+        if unassigned_inputs:
+            if v == 0:
+                return max(unassigned_inputs, key=lambda net: self.simulator.nets[net].cc0)
+            elif v == 1:
+                return max(unassigned_inputs, key=lambda net: self.simulator.nets[net].cc1)
         return None
 
 
     def select_easiest_control_input(self, gate, v):
-        if v == 0:
-            return min(gate.inputs, key=lambda net: self.simulator.nets[net].cc0)
-        elif v == 1:
-            return min(gate.inputs, key=lambda net: self.simulator.nets[net].cc1)
+        unassigned_inputs = [net for net in gate.inputs if self.simulator.nets[net].value[0] == 'X']
+        if unassigned_inputs:
+            if v == 0:
+                return min(unassigned_inputs, key=lambda net: self.simulator.nets[net].cc0)
+            elif v == 1:
+                return min(unassigned_inputs, key=lambda net: self.simulator.nets[net].cc1)
         return None
+
 
     def imply(self, fault_net, fault_type):
         # for net in self.simulator.nets:
@@ -225,9 +233,11 @@ class TestGenerator:
                 #     return False
             self.simulator.nets[gate.output].value[0] = gate_output_value
         # return True
-        for net in self.simulator.nets:
-            if net:
-                print(f"{net.name}: {net.value}")
+
+        # for net in self.simulator.nets:
+        #     if net:
+        #         print(f"{net.name}: {net.value}", end=" ")
+        # print("")
 
 
 
