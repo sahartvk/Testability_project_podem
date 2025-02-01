@@ -41,30 +41,22 @@ class TestGenerator:
 
         print(f"PODEM completed. Results saved to {out_file}.")
 
-    def XPathCheck(self):
-        pass
 
     def XPathCheck(self, fault_net):
-        """
-        بررسی می‌کند که آیا مقداری نامشخص (X) در مسیر انتشار اشکال وجود دارد یا نه.
-        """
-        # اگر خطای مشخص‌شده در یکی از ورودی‌های مدار باشد، مقدار X را بررسی می‌کنیم
         if fault_net in self.simulator.inputs:
             return self.simulator.nets[fault_net].value[0] == 'X'
         
-        # پیمایش از طریق DFrontier
         while True:
             for gate in self.d_frontier:
                 if gate.output == fault_net:
-                    # بررسی گیت‌های یک ورودی (INV, BUF)
-                    if gate.gate_type in ["BUF", "INV"]:
+                    if gate.gate_type in ["BUF", "NOT", "FANOUT"]:
                         if self.simulator.nets[gate.inputs[0]].value[0] == 'X':
+                            # TODO: below ????
                             fault_net = gate.inputs[0]
                             return True
                         else:
                             return False
                     else:
-                        # بررسی گیت‌های چندورودی (AND, OR, NAND, NOR, XOR, XNOR)
                         for input_net in gate.inputs:
                             if self.simulator.nets[input_net].value[0] == 'X':
                                 fault_net = input_net
@@ -114,7 +106,7 @@ class TestGenerator:
             if self.simulator.nets[output_net].value in ['D', "Db"]:
                 return True
             
-        if len(self.d_frontier) < 1 and self.XPathCheck() == False:
+        if len(self.d_frontier) < 1 and self.XPathCheck(fault_net) == False:
             return False
         
         objective_input, objective_value = self.objective(fault_net, fault_type)
