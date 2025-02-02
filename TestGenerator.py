@@ -101,18 +101,15 @@ class TestGenerator:
             return False
         
         objective_input, objective_value = self.objective(fault_net, fault_type)
-        # print(f"podem1: {objective_input}, {objective_value}")
         pi_net, pi_value = self.backtrace(objective_input, objective_value)
-
-        # print(f"podem2: {objective_input}, {objective_value}, {pi_net}, {pi_value}")
         
         # TODO: check
         self.simulator.nets[pi_net].value[0] = pi_value
         if pi_net == fault_net:
             if pi_value == 1 and fault_type == 'sa0':
-                self.simulator.nets[pi_net] = 'D'
+                self.simulator.nets[pi_net].value[0] = 'D'
             elif pi_value == 0 and fault_type == 'sa1':
-                self.simulator.nets[pi_net] = 'Db'
+                self.simulator.nets[pi_net].value[0] = 'Db'
 
         self.imply(fault_net, fault_type)
 
@@ -168,7 +165,6 @@ class TestGenerator:
 
     def backtrace(self, s, v):
         while s not in self.simulator.inputs:
-            # print(f"s:{s}")
             gates = [g for g in self.simulator.gates if g.output == s]
             gate = gates[0]
             # TODO: xor and xnor?
@@ -177,16 +173,12 @@ class TestGenerator:
                 v = 1 - v
 
             # TODO: xor and xnor?
-            # print(f"gate inputs:{gate.inputs}, v:{v}, last_v:{last_v}")
             if self.requires_all_inputs(gate, last_v):
-                # print("hardest")
                 a = self.select_hardest_control_input(gate, v)
             else:
-                # print("easiest")
                 a = self.select_easiest_control_input(gate, v)
 
             s = a 
-            # print(a)
         return s, v
 
 
@@ -220,7 +212,6 @@ class TestGenerator:
         # for net in self.simulator.nets:
         #     if net and net.number not in self.simulator.inputs:
         #         net.value[0] = ['X']
-
         for gate in self.simulator.gates:
             gate_inputs_value = [self.simulator.nets[net].value[0] for net in gate.inputs]
             gate_output_value = Gate.calculate_5valued_gate_output(gate.type, gate_inputs_value)
@@ -244,5 +235,6 @@ class TestGenerator:
 
 if __name__ == "__main__":
 
-    test_atpg = TestGenerator("c17.isc")
+    # test_atpg = TestGenerator("c17.isc")
+    test_atpg = TestGenerator("c5.isc")
     test_atpg.run_podem_for_faults()
